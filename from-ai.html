@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Image Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .toolbar {
+            flex: 0 0 250px;
+            background: #2c3e50;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tool-section {
+            background: #34495e;
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+        }
+
+        .tool-section h3 {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            color: #ecf0f1;
+            border-bottom: 1px solid #4a6278;
+            padding-bottom: 8px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .tool-btn {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+
+        .tool-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .tool-btn i {
+            font-size: 1.2rem;
+        }
+
+        .tool-btn.active {
+            background: #e74c3c;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .workspace {
+            flex: 1;
+            min-height: 600px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ecf0f1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #imageCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-area {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+
+        .upload-area i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .upload-area p {
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #34495e;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #dfe6e9;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #ecf0f1;
+            transform: scale(1.05);
+        }
+
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            color: #2c3e50;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .modal-btn.primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 1100px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            
+            .toolbar {
+                flex: 1;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .tool-section {
+                flex: 1;
+                min-width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .tool-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Online Image Editor</h1>
+            <p class="subtitle">Edit images directly in your browser - no installation required</p>
+        </header>
+        
+        <div class="editor-container">
+            <div class="toolbar">
+                <div class="tool-section">
+                    <h3>File Operations</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn" id="openBtn">
+                            <i class="fas fa-folder-open"></i>
+                            <span>Open</span>
+                        </button>
+                        <button class="tool-btn" id="saveBtn">
+                            <i class="fas fa-save"></i>
+                            <span>Save</span>
+                        </button>
+                        <button class="tool-btn" id="undoBtn">
+                            <i class="fas fa-undo"></i>
+                            <span>Undo</span>
+                        </button>
+                        <button class="tool-btn" id="redoBtn">
+                            <i class="fas fa-redo"></i>
+                            <span>Redo</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>Edit Tools</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn" id="cropBtn">
+                            <i class="fas fa-crop-alt"></i>
+                            <span>Crop</span>
+                        </button>
+                        <button class="tool-btn" id="resizeBtn">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                            <span>Resize</span>
+                        </button>
+                        <button class="tool-btn" id="rotateLeftBtn">
+                            <i class="fas fa-undo"></i>
+                            <span>Rotate Left</span>
+                        </button>
+                        <button class="tool-btn" id="rotateRightBtn">
+                            <i class="fas fa-redo"></i>
+                            <span>Rotate Right</span>
+                        </button>
+                        <button class="tool-btn" id="flipHorizontalBtn">
+                            <i class="fas fa-arrows-alt-h"></i>
+                            <span>Flip H</span>
+                        </button>
+                        <button class="tool-btn" id="flipVerticalBtn">
+                            <i class="fas fa-arrows-alt-v"></i>
+                            <span>Flip V</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>Drawing Tools</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn" id="brushBtn">
+                            <i class="fas fa-paint-brush"></i>
+                            <span>Brush</span>
+                        </button>
+                        <button class="tool-btn" id="textBtn">
+                            <i class="fas fa-font"></i>
+                            <span>Text</span>
+                        </button>
+                        <button class="tool-btn" id="eraserBtn">
+                            <i class="fas fa-eraser"></i>
+                            <span>Eraser</span>
+                        </button>
+                        <button class="tool-btn" id="shapesBtn">
+                            <i class="fas fa-shapes"></i>
+                            <span>Shapes</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>Effects</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn" id="filtersBtn">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>Filters</span>
+                        </button>
+                        <button class="tool-btn" id="framesBtn">
+                            <i class="fas fa-square"></i>
+                            <span>Frames</span>
+                        </button>
+                        <button class="tool-btn" id="stickersBtn">
+                            <i class="fas fa-smile"></i>
+                            <span>Stickers</span>
+                        </button>
+                        <button class="tool-btn" id="redactBtn">
+                            <i class="fas fa-eye-slash"></i>
+                            <span>Redact</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>View</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn" id="zoomInBtn">
+                            <i class="fas fa-search-plus"></i>
+                            <span>Zoom In</span>
+                        </button>
+                        <button class="tool-btn" id="zoomOutBtn">
+                            <i class="fas fa-search-minus"></i>
+                            <span>Zoom Out</span>
+                        </button>
+                        <button class="tool-btn" id="resetBtn">
+                            <i class="fas fa-sync"></i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="workspace">
+                <div class="canvas-container">
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Upload an Image to Edit</h3>
+                        <p>Drag & drop an image here or click the button below</p>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+                        <button class="upload-btn" id="uploadBtn">Choose Image</button>
+                        <p style="margin-top: 15px;">Or paste an image from clipboard (Ctrl+V)</p>
+                    </div>
+                    <canvas id="imageCanvas" class="hidden"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <h3>Adjustments</h3>
+                        <div class="slider-container">
+                            <label for="brightnessSlider">Brightness</label>
+                            <input type="range" id="brightnessSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                        <div class="slider-container">
+                            <label for="contrastSlider">Contrast</label>
+                            <input type="range" id="contrastSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                        <div class="slider-container">
+                            <label for="saturationSlider">Saturation</label>
+                            <input type="range" id="saturationSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Color Balance</h3>
+                        <div class="slider-container">
+                            <label for="warmthSlider">Warmth</label>
+                            <input type="range" id="warmthSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                        <div class="slider-container">
+                            <label for="tintSlider">Tint</label>
+                            <input type="range" id="tintSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                        <div class="slider-container">
+                            <label for="exposureSlider">Exposure</label>
+                            <input type="range" id="exposureSlider" class="slider" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Filters</h3>
+                        <div class="filter-grid">
+                            <button class="filter-btn active">None</button>
+                            <button class="filter-btn">Vintage</button>
+                            <button class="filter-btn">Black & White</button>
+                            <button class="filter-btn">Sepia</button>
+                            <button class="filter-btn">Cool</button>
+                            <button class="filter-btn">Warm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Online Image Editor &copy; 2023 | All edits happen in your browser - your images are never uploaded to a server</p>
+        </footer>
+    </div>
+
+    <!-- Modals for various tools -->
+    <div class="modal hidden" id="cropModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Crop Image</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Drag the corners of the crop area to select the portion of the image you want to keep.</p>
+                <div style="margin: 20px 0; text-align: center;">
+                    <canvas id="cropCanvas" width="400" height="300" style="border: 1px solid #ccc;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelCrop">Cancel</button>
+                <button class="modal-btn primary" id="applyCrop">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="resizeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Resize Image</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="slider-container">
+                    <label for="widthInput">Width (px)</label>
+                    <input type="number" id="widthInput" class="text-input" value="800">
+                </div>
+                <div class="slider-container">
+                    <label for="heightInput">Height (px)</label>
+                    <input type="number" id="heightInput" class="text-input" value="600">
+                </div>
+                <div style="margin-top: 15px;">
+                    <input type="checkbox" id="maintainAspectRatio" checked>
+                    <label for="maintainAspectRatio">Maintain aspect ratio</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelResize">Cancel</button>
+                <button class="modal-btn primary" id="applyResize">Apply Resize</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="textModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Text</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="textInput" class="text-input" placeholder="Enter your text here">
+                <div style="margin: 15px 0;">
+                    <label>Text Color:</label>
+                    <input type="color" id="textColor" class="color-picker" value="#000000">
+                </div>
+                <div class="slider-container">
+                    <label for="fontSize">Font Size</label>
+                    <input type="range" id="fontSize" class="slider" min="10" max="72" value="24">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelText">Cancel</button>
+                <button class="modal-btn primary" id="applyText">Add Text</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            // Set initial canvas size
+            canvas.width = 800;
+            canvas.height = 500;
+            
+            // State variables
+            let currentImage = null;
+            let history = [];
+            let historyIndex = -1;
+            let currentTool = null;
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // Upload button click handler
+            uploadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // File input change handler
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    loadImageFromFile(e.target.files[0]);
+                }
+            });
+            
+            // Load image from file
+            function loadImageFromFile(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        currentImage = img;
+                        drawImageToCanvas();
+                        saveToHistory();
+                        uploadArea.classList.add('hidden');
+                        canvas.classList.remove('hidden');
+                    };
+                    img.src = event.target.result;
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            
+            // Draw image to canvas
+            function drawImageToCanvas() {
+                if (!currentImage) return;
+                
+                // Calculate dimensions to fit canvas
+                const scale = Math.min(canvas.width / currentImage.width, canvas.height / currentImage.height);
+                const width = currentImage.width * scale;
+                const height = currentImage.height * scale;
+                const x = (canvas.width - width) / 2;
+                const y = (canvas.height - height) / 2;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(currentImage, x, y, width, height);
+            }
+            
+            // Save current state to history
+            function saveToHistory() {
+                // Remove any future states if we're not at the end of history
+                if (historyIndex < history.length - 1) {
+                    history = history.slice(0, historyIndex + 1);
+                }
+                
+                // Save current canvas state
+                history.push(canvas.toDataURL());
+                historyIndex = history.length - 1;
+                
+                // Update undo/redo button states
+                updateUndoRedoButtons();
+            }
+            
+            // Update undo/redo button states
+            function updateUndoRedoButtons() {
+                document.getElementById('undoBtn').disabled = historyIndex <= 0;
+                document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
+            }
+            
+            // Undo function
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        updateUndoRedoButtons();
+                    };
+                    img.src = history[historyIndex];
+                }
+            }
+            
+            // Redo function
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        updateUndoRedoButtons();
+                    };
+                    img.src = history[historyIndex];
+                }
+            }
+            
+            // Handle paste from clipboard
+            document.addEventListener('paste', function(e) {
+                const items = e.clipboardData.items;
+                
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        loadImageFromFile(blob);
+                        break;
+                    }
+                }
+            });
+            
+            // Tool button event handlers
+            document.getElementById('saveBtn').addEventListener('click', function() {
+                const link = document.createElement('a');
+                link.download = 'edited-image.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            document.getElementById('undoBtn').addEventListener('click', undo);
+            document.getElementById('redoBtn').addEventListener('click', redo);
+            
+            document.getElementById('cropBtn').addEventListener('click', function() {
+                document.getElementById('cropModal').classList.remove('hidden');
+            });
+            
+            document.getElementById('resizeBtn').addEventListener('click', function() {
+                document.getElementById('resizeModal').classList.remove('hidden');
+            });
+            
+            document.getElementById('rotateLeftBtn').addEventListener('click', function() {
+                rotateImage(-90);
+            });
+            
+            document.getElementById('rotateRightBtn').addEventListener('click', function() {
+                rotateImage(90);
+            });
+            
+            document.getElementById('flipHorizontalBtn').addEventListener('click', function() {
+                flipImage('horizontal');
+            });
+            
+            document.getElementById('flipVerticalBtn').addEventListener('click', function() {
+                flipImage('vertical');
+            });
+            
+            document.getElementById('brushBtn').addEventListener('click', function() {
+                setDrawingTool('brush');
+            });
+            
+            document.getElementById('textBtn').addEventListener('click', function() {
+                document.getElementById('textModal').classList.remove('hidden');
+            });
+            
+            document.getElementById('eraserBtn').addEventListener('click', function() {
+                setDrawingTool('eraser');
+            });
+            
+            document.getElementById('shapesBtn').addEventListener('click', function() {
+                alert('Shapes tool activated. Click and drag on the canvas to draw shapes.');
+                setDrawingTool('rectangle');
+            });
+            
+            document.getElementById('filtersBtn').addEventListener('click', function() {
+                alert('Filters panel activated. Use the filter buttons below the canvas.');
+            });
+            
+            document.getElementById('framesBtn').addEventListener('click', function() {
+                addFrame();
+            });
+            
+            document.getElementById('stickersBtn').addEventListener('click', function() {
+                addSticker();
+            });
+            
+            document.getElementById('redactBtn').addEventListener('click', function() {
+                setDrawingTool('redact');
+            });
+            
+            document.getElementById('zoomInBtn').addEventListener('click', function() {
+                zoomImage(1.2);
+            });
+            
+            document.getElementById('zoomOutBtn').addEventListener('click', function() {
+                zoomImage(0.8);
+            });
+            
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                if (currentImage) {
+                    drawImageToCanvas();
+                    saveToHistory();
+                }
+            });
+            
+            // Set drawing tool
+            function setDrawingTool(tool) {
+                currentTool = tool;
+                
+                // Remove active class from all buttons
+                const toolButtons = document.querySelectorAll('.tool-btn');
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to current tool button
+                event.target.classList.add('active');
+                
+                // Set cursor based on tool
+                switch(tool) {
+                    case 'brush':
+                        canvas.style.cursor = 'crosshair';
+                        break;
+                    case 'eraser':
+                        canvas.style.cursor = 'cell';
+                        break;
+                    case 'rectangle':
+                        canvas.style.cursor = 'crosshair';
+                        break;
+                    case 'redact':
+                        canvas.style.cursor = 'not-allowed';
+                        break;
+                    default:
+                        canvas.style.cursor = 'default';
+                }
+            }
+            
+            // Rotate image
+            function rotateImage(degrees) {
+                if (!currentImage) return;
+                
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Swap dimensions if rotating 90 or 270 degrees
+                if (Math.abs(degrees) % 180 === 90) {
+                    tempCanvas.width = canvas.height;
+                    tempCanvas.height = canvas.width;
+                } else {
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvas.height;
+                }
+                
+                tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+                tempCtx.rotate(degrees * Math.PI / 180);
+                tempCtx.drawImage(currentImage, -currentImage.width / 2, -currentImage.height / 2);
+                
+                currentImage = new Image();
+                currentImage.src = tempCanvas.toDataURL();
+                
+                currentImage.onload = function() {
+                    drawImageToCanvas();
+                    saveToHistory();
+                };
+            }
+            
+            // Flip image
+            function flipImage(direction) {
+                if (!currentImage) return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                
+                if (direction === 'horizontal') {
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                } else {
+                    ctx.translate(0, canvas.height);
+                    ctx.scale(1, -1);
+                }
+                
+                // Calculate dimensions to fit canvas
+                const scale = Math.min(canvas.width / currentImage.width, canvas.height / currentImage.height);
+                const width = currentImage.width * scale;
+                const height = currentImage.height * scale;
+                const x = (canvas.width - width) / 2;
+                const y = (canvas.height - height) / 2;
+                
+                ctx.drawImage(currentImage, x, y, width, height);
+                ctx.restore();
+                
+                // Update current image
+                currentImage = new Image();
+                currentImage.src = canvas.toDataURL();
+                
+                saveToHistory();
+            }
+            
+            // Zoom image
+            function zoomImage(factor) {
+                if (!currentImage) return;
+                
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    drawImageToCanvas();
+                    saveToHistory();
+                };
+                img.src = canvas.toDataURL();
+            }
+            
+            // Add frame to image
+            function addFrame() {
+                if (!currentImage) return;
+                
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 20;
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+                
+                saveToHistory();
+            }
+            
+            // Add sticker to image
+            function addSticker() {
+                if (!currentImage) return;
+                
+                // In a real implementation, this would show a sticker selection dialog
+                // For now, we'll just add a simple smiley face
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(canvas.width - 60, 60, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(canvas.width - 75, 45, 5, 0, Math.PI * 2);
+                ctx.arc(canvas.width - 45, 45, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Mouth
+                ctx.beginPath();
+                ctx.arc(canvas.width - 60, 65, 20, 0, Math.PI);
+                ctx.stroke();
+                
+                saveToHistory();
+            }
+            
+            // Drawing functionality
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            function startDrawing(e) {
+                if (!currentTool) return;
+                
+                isDrawing = true;
+                [lastX, lastY] = getMousePos(canvas, e);
+            }
+            
+            function draw(e) {
+                if (!isDrawing || !currentTool) return;
+                
+                const [x, y] = getMousePos(canvas, e);
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                
+                switch(currentTool) {
+                    case 'brush':
+                        ctx.strokeStyle = '#3498db';
+                        ctx.lineWidth = 5;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                        break;
+                    case 'eraser':
+                        ctx.strokeStyle = '#ecf0f1';
+                        ctx.lineWidth = 20;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                        break;
+                    case 'redact':
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 20;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                        break;
+                    case 'rectangle':
+                        // For rectangle, we'd typically draw on mouse up
+                        break;
+                }
+                
+                [lastX, lastY] = [x, y];
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+                
+                if (currentTool) {
+                    saveToHistory();
+                }
+            }
+            
+            // Get mouse position relative to canvas
+            function getMousePos(canvas, e) {
+                const rect = canvas.getBoundingClientRect();
+                return [
+                    e.clientX - rect.left,
+                    e.clientY - rect.top
+                ];
+            }
+            
+            // Modal functionality
+            document.querySelectorAll('.close-modal, .modal-btn.secondary').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.classList.add('hidden');
+                    });
+                });
+            });
+            
+            // Apply crop
+            document.getElementById('applyCrop').addEventListener('click', function() {
+                // In a real implementation, this would apply the crop
+                alert('Crop applied!');
+                document.getElementById('cropModal').classList.add('hidden');
+                saveToHistory();
+            });
+            
+            // Apply resize
+            document.getElementById('applyResize').addEventListener('click', function() {
+                const width = parseInt(document.getElementById('widthInput').value);
+                const height = parseInt(document.getElementById('heightInput').value);
+                
+                if (width > 0 && height > 0) {
+                    canvas.width = width;
+                    canvas.height = height;
+                    drawImageToCanvas();
+                    document.getElementById('resizeModal').classList.add('hidden');
+                    saveToHistory();
+                } else {
+                    alert('Please enter valid dimensions');
+                }
+            });
+            
+            // Apply text
+            document.getElementById('applyText').addEventListener('click', function() {
+                const text = document.getElementById('textInput').value;
+                const color = document.getElementById('textColor').value;
+                const size = document.getElementById('fontSize').value;
+                
+                if (text) {
+                    ctx.font = `${size}px Arial`;
+                    ctx.fillStyle = color;
+                    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+                    document.getElementById('textModal').classList.add('hidden');
+                    saveToHistory();
+                } else {
+                    alert('Please enter some text');
+                }
+            });
+            
+            // Initialize undo/redo buttons
+            updateUndoRedoButtons();
+            
+            // Add active state to tool buttons on click
+            const toolButtons = document.querySelectorAll('.tool-btn');
+            toolButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Don't remove active class from undo/redo buttons
+                    if (!this.id.includes('undo') && !this.id.includes('redo')) {
+                        toolButtons.forEach(btn => {
+                            if (!btn.id.includes('undo') && !btn.id.includes('redo')) {
+                                btn.classList.remove('active');
+                            }
+                        });
+                    }
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                });
+            });
+            
+            // Add active state to filter buttons on click
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all filter buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked filter button
+                    this.classList.add('active');
+                    
+                    // Apply filter (simplified)
+                    if (currentImage) {
+                        // In a real implementation, this would apply the selected filter
+                        drawImageToCanvas();
+                        saveToHistory();
+                    }
+                });
+            });
+            
+            // Initialize sliders
+            const sliders = document.querySelectorAll('.slider');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', function() {
+                    if (currentImage) {
+                        // In a real implementation, this would apply the adjustment to the image
+                        console.log(`${this.id}: ${this.value}`);
+                        drawImageToCanvas();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
