@@ -482,6 +482,26 @@
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
             const uploadBtn = document.getElementById('uploadBtn');
+            const openBtn = document.getElementById('openBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const rotateLeftBtn = document.getElementById('rotateLeftBtn');
+            const rotateRightBtn = document.getElementById('rotateRightBtn');
+            const flipHorizontalBtn = document.getElementById('flipHorizontalBtn');
+            const flipVerticalBtn = document.getElementById('flipVerticalBtn');
+            
+            let hasImage = false;
+            let history = [];
+            let redoStack = [];
+            let baseImageData = null;
+            let currentFilter = 'none';
+
+            const brightnessSlider = document.getElementById('brightnessSlider');
+            const contrastSlider = document.getElementById('contrastSlider');
+            const saturationSlider = document.getElementById('saturationSlider');
+            const warmthSlider = document.getElementById('warmthSlider');
+            const tintSlider = document.getElementById('tintSlider');
+            const exposureSlider = document.getElementById('exposureSlider');
             
             // Set initial canvas size
             canvas.width = 800;
@@ -491,6 +511,137 @@
             uploadBtn.addEventListener('click', function() {
                 fileInput.click();
             });
+            
+            // Open button click handler
+            openBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            function pushState() {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                history.push(imageData);
+                if (history.length > 50) {
+                    history.shift();
+                }
+            }
+
+            function restoreState(imageData) {
+                ctx.putImageData(imageData, 0, 0);
+                baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+
+            function applyCanvasTransform(transformFn) {
+                if (!hasImage) {
+                    return;
+                }
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                transformFn(ctx);
+                ctx.drawImage(tempCanvas, -canvas.width / 2, -canvas.height / 2);
+                ctx.restore();
+
+                pushState();
+                redoStack = [];
+                baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+
+            function clamp(value, min, max) {
+                return Math.min(max, Math.max(min, value));
+            }
+
+            function applyAdjustments(previewOnly) {
+                if (!hasImage || !baseImageData) {
+                    return;
+                }
+
+                const brightness = parseInt(brightnessSlider.value, 10);
+                const contrast = parseInt(contrastSlider.value, 10);
+                const saturation = parseInt(saturationSlider.value, 10);
+                const warmth = parseInt(warmthSlider.value, 10);
+                const tint = parseInt(tintSlider.value, 10);
+                const exposure = parseInt(exposureSlider.value, 10);
+
+                const data = new Uint8ClampedArray(baseImageData.data);
+                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                const exposureFactor = 1 + exposure / 100;
+                const saturationFactor = 1 + saturation / 100;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+
+                    // Brightness and exposure
+                    r = (r + brightness) * exposureFactor;
+                    g = (g + brightness) * exposureFactor;
+                    b = (b + brightness) * exposureFactor;
+
+                    // Contrast
+                    r = factor * (r - 128) + 128;
+                    g = factor * (g - 128) + 128;
+                    b = factor * (b - 128) + 128;
+
+                    // Saturation
+                    const gray = 0.3 * r + 0.59 * g + 0.11 * b;
+                    r = gray + (r - gray) * saturationFactor;
+                    g = gray + (g - gray) * saturationFactor;
+                    b = gray + (b - gray) * saturationFactor;
+
+                    // Warmth (red/blue) and tint (green/magenta)
+                    r += warmth;
+                    b -= warmth;
+                    g += tint;
+
+                    // Filters
+                    if (currentFilter === 'black-white') {
+                        const bw = 0.3 * r + 0.59 * g + 0.11 * b;
+                        r = bw;
+                        g = bw;
+                        b = bw;
+                    } else if (currentFilter === 'sepia') {
+                        const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+                        const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+                        const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+                        r = sr;
+                        g = sg;
+                        b = sb;
+                    } else if (currentFilter === 'vintage') {
+                        const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+                        const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+                        const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+                        r = sr + 10;
+                        g = sg + 5;
+                        b = sb - 10;
+                    } else if (currentFilter === 'cool') {
+                        b += 20;
+                        r -= 5;
+                    } else if (currentFilter === 'warm') {
+                        r += 20;
+                        b -= 10;
+                    }
+
+                    data[i] = clamp(Math.round(r), 0, 255);
+                    data[i + 1] = clamp(Math.round(g), 0, 255);
+                    data[i + 2] = clamp(Math.round(b), 0, 255);
+                }
+
+                const result = new ImageData(data, baseImageData.width, baseImageData.height);
+                ctx.putImageData(result, 0, 0);
+
+                if (!previewOnly) {
+                    baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    pushState();
+                    redoStack = [];
+                }
+            }
             
             // File input change handler
             fileInput.addEventListener('change', function(e) {
@@ -512,6 +663,11 @@
                             
                             uploadArea.classList.add('hidden');
                             canvas.classList.remove('hidden');
+                            hasImage = true;
+                            history = [];
+                            redoStack = [];
+                            baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            pushState();
                         };
                         img.src = event.target.result;
                     };
@@ -544,6 +700,11 @@
                                 
                                 uploadArea.classList.add('hidden');
                                 canvas.classList.remove('hidden');
+                                hasImage = true;
+                                history = [];
+                                redoStack = [];
+                                baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                pushState();
                             };
                             img.src = event.target.result;
                         };
@@ -560,6 +721,49 @@
                 link.download = 'edited-image.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+            });
+
+            undoBtn.addEventListener('click', function() {
+                if (history.length <= 1) {
+                    return;
+                }
+                const current = history.pop();
+                redoStack.push(current);
+                const previous = history[history.length - 1];
+                restoreState(previous);
+            });
+
+            redoBtn.addEventListener('click', function() {
+                if (redoStack.length === 0) {
+                    return;
+                }
+                const next = redoStack.pop();
+                history.push(next);
+                restoreState(next);
+            });
+
+            rotateLeftBtn.addEventListener('click', function() {
+                applyCanvasTransform(function(ctx) {
+                    ctx.rotate(-Math.PI / 2);
+                });
+            });
+
+            rotateRightBtn.addEventListener('click', function() {
+                applyCanvasTransform(function(ctx) {
+                    ctx.rotate(Math.PI / 2);
+                });
+            });
+
+            flipHorizontalBtn.addEventListener('click', function() {
+                applyCanvasTransform(function(ctx) {
+                    ctx.scale(-1, 1);
+                });
+            });
+
+            flipVerticalBtn.addEventListener('click', function() {
+                applyCanvasTransform(function(ctx) {
+                    ctx.scale(1, -1);
+                });
             });
             
             // Add active state to tool buttons on click
@@ -581,6 +785,15 @@
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     // Add active class to clicked filter button
                     this.classList.add('active');
+                    const label = this.textContent.trim().toLowerCase();
+                    if (label === 'none') {
+                        currentFilter = 'none';
+                    } else if (label === 'black & white' || label === 'black and white') {
+                        currentFilter = 'black-white';
+                    } else {
+                        currentFilter = label;
+                    }
+                    applyAdjustments(false);
                 });
             });
             
@@ -588,8 +801,10 @@
             const sliders = document.querySelectorAll('.slider');
             sliders.forEach(slider => {
                 slider.addEventListener('input', function() {
-                    // In a real implementation, this would apply the filter to the image
-                    console.log(`${this.id}: ${this.value}`);
+                    applyAdjustments(true);
+                });
+                slider.addEventListener('change', function() {
+                    applyAdjustments(false);
                 });
             });
         });
